@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass
 from enum import Enum
 import pandas as pd
-from dotenv import load_dotenv  # Fixed: changed from load_dotload_dotenv to load_dotenv
+from dotenv import load_dotenv
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
@@ -29,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Load environment variables
-load_dotenv()  # Now this will work correctly
+load_dotenv()
 
 # Page configuration
 st.set_page_config(
@@ -177,6 +177,17 @@ st.markdown("""
     
     @keyframes spin {
         to { transform: rotate(360deg); }
+    }
+    
+    /* Main Header */
+    .main-header {
+        text-align: center;
+        font-size: 2.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -616,10 +627,11 @@ def main():
         
         st.subheader("🔑 API Key Status")
         for key, available in API_KEYS_AVAILABLE.items():
+            display_name = key.replace('_API_KEY', '').replace('_', ' ').title()
             if available:
-                st.success(f"✅ {key.replace('_API_KEY', '')}")
+                st.success(f"✅ {display_name}")
             else:
-                st.error(f"❌ {key.replace('_API_KEY', '')}")
+                st.error(f"❌ {display_name}")
         
         st.markdown("---")
         
@@ -676,13 +688,12 @@ def main():
                 selected_models.append(("Mistral Small", model))
         
         if not selected_models:
-            NotificationComponent.show_error(
-                ErrorDetails(
-                    error_type=ErrorType.UNAVAILABLE,
-                    user_message="**No Models Selected**\n\nPlease select at least one model to compare.",
-                    technical_details="No models selected by user"
-                )
+            error_details = ErrorDetails(
+                error_type=ErrorType.UNAVAILABLE,
+                user_message="**No Models Selected**\n\nPlease select at least one model to compare.",
+                technical_details="No models selected by user"
             )
+            NotificationComponent.show_error(error_details)
             return
         
         # Prepare messages
@@ -693,18 +704,18 @@ def main():
         
         # Run queries
         with st.spinner("🔄 Running models with automatic retry logic..."):
+            # Create event loop
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_closed():
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
+                loop = asyncio.get_running_loop()
             except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+                loop = None
             
-            results, total_time = loop.run_until_complete(
-                run_models_async(selected_models, messages, timeout, temperature, max_retries)
-            )
+            if loop is None:
+                # Run in a new event loop
+                results, total_time = asyncio.run(run_models_async(selected_models, messages, timeout, temperature, max_retries))
+            else:
+                # We're already in an event loop (like in Streamlit)
+                results, total_time = await run_models_async(selected_models, messages, timeout, temperature, max_retries)
         
         # Display results
         successful = [r for r in results if r["success"]]
@@ -718,14 +729,12 @@ def main():
             if "error_details" in result:
                 NotificationComponent.show_error(result["error_details"], result["model"])
             else:
-                NotificationComponent.show_error(
-                    ErrorDetails(
-                        error_type=ErrorType.UNKNOWN,
-                        user_message=result.get("error", "An unknown error occurred"),
-                        technical_details=result.get("error", "No details available")
-                    ),
-                    result["model"]
+                error_details = ErrorDetails(
+                    error_type=ErrorType.UNKNOWN,
+                    user_message=result.get("error", "An unknown error occurred"),
+                    technical_details=result.get("error", "No details available")
                 )
+                NotificationComponent.show_error(error_details, result["model"])
         
         # Create tabs
         tab1, tab2, tab3 = st.tabs(["📊 Comparison Table", "📝 Detailed Responses", "📈 Statistics"])
@@ -735,7 +744,7 @@ def main():
                 comparison_data = []
                 for result in results:
                     status = "✅" if result["success"] else "❌"
-                    response_preview = result["response"][:150] + "..." if result["success"] and len(result["response"]) > 150 else result["response"][:150] if result["success"] else f"ERROR"
+                    response_preview = result["response"][:150] + "..." if result["success"] and len(result["response"]) > 150 else result["response"][:150] if result["success"] else "ERROR - See Details tab"
                     
                     comparison_data.append({
                         "Status": status,
@@ -838,7 +847,7 @@ def main():
         NotificationComponent.show_info("""
         **No API Keys Configured**
         
-        To get started, create a `.env` file with your API keys:
+        To get started, create a `.env` file in your repository with your API keys:
         
 The app will automatically detect your keys after restart.
 """)
