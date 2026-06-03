@@ -1,0 +1,35 @@
+Prompt: hello
+
+--- OpenAI (GPT-4o Mini) ---
+Time: 3.84s
+Length: 0
+Response:
+Error: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+
+--- Google (Gemini 1.5 Flash) ---
+Time: 1.05s
+Length: 0
+Response:
+Error: Error calling model 'gemini-1.5-flash' (NOT_FOUND): 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+--- Groq (Llama 3 70B) ---
+Time: 0.57s
+Length: 34
+Response:
+Hello. How can I assist you today?
+
+--- Mistral (Mistral Small) ---
+Time: 0.7s
+Length: 34
+Response:
+Hello! How can I assist you today?
+
+--- Hugging Face (Zephyr 7B) ---
+Time: 0.53s
+Length: 0
+Response:
+Error: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6a1e7639-57fd81592ddaf4ae3114a48e;7b27101e-d731-401f-881a-99d498deff47)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+Invalid username or password.
+
