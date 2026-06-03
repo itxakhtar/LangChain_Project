@@ -1,0 +1,10 @@
+2026-06-03 12:17:30,612 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-06-03 12:17:31,366 - httpx - INFO - HTTP Request: POST https://api.mistral.ai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-03 12:17:31,402 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-03 12:17:32,027 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-06-03 12:17:32,029 - openai._base_client - INFO - Retrying request to /chat/completions in 0.468310 seconds
+2026-06-03 12:17:32,772 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-06-03 12:17:32,775 - openai._base_client - INFO - Retrying request to /chat/completions in 0.986321 seconds
+2026-06-03 12:17:34,043 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-06-03 12:17:34,055 - __main__ - ERROR - Model: OpenAI GPT-4o Mini, Error: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2026-06-03 12:17:34,057 - __main__ - ERROR - Model: Gemini 1.5 Flash, Error: Error calling model 'gemini-1.5-flash' (INVALID_ARGUMENT): 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key not valid. Please pass a valid API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key not valid. Please pass a valid API key.'}]}}
