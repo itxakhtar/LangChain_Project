@@ -3,7 +3,6 @@ import os
 import asyncio
 import time
 import logging
-import traceback
 import re
 from typing import List, Dict, Any, Optional, Callable
 from datetime import datetime, timedelta
@@ -28,7 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+load_dotenv()  # only used locally; ignored on Streamlit Cloud
 
 st.set_page_config(
     page_title="Multi-Model AI Arena",
@@ -38,7 +37,7 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------------------
-# Custom CSS (unchanged, kept for professional look)
+# Custom CSS
 # ----------------------------------------------------------------------
 st.markdown("""
 <style>
@@ -74,7 +73,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------------
-# Error handling classes (unchanged, but fixed rate-limit parsing)
+# Error handling classes
 # ----------------------------------------------------------------------
 class ErrorType(Enum):
     RATE_LIMIT = "rate_limit"
@@ -245,14 +244,24 @@ class NotificationComponent:
         """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------------
-# API key handling & model factories
+# API key handling: Streamlit secrets first, then .env
 # ----------------------------------------------------------------------
+def get_api_key(key_name: str) -> Optional[str]:
+    """Retrieve API key from Streamlit secrets or environment variable."""
+    try:
+        # Streamlit Cloud secrets
+        return st.secrets.get(key_name)
+    except (FileNotFoundError, AttributeError, KeyError):
+        # Local development: fallback to .env via os.getenv
+        return os.getenv(key_name)
+
 def clean_api_keys() -> Dict[str, bool]:
     keys = ["OPENAI_API_KEY", "GOOGLE_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY"]
     cleaned = {}
     for key in keys:
-        val = os.getenv(key)
+        val = get_api_key(key)
         if val:
+            # Also set in environment so that LangChain libraries can find them
             os.environ[key] = val.strip()
             cleaned[key] = True
         else:
@@ -261,6 +270,9 @@ def clean_api_keys() -> Dict[str, bool]:
 
 API_KEYS_AVAILABLE = clean_api_keys()
 
+# ----------------------------------------------------------------------
+# Model factories
+# ----------------------------------------------------------------------
 def setup_openai() -> Optional[ChatOpenAI]:
     if not API_KEYS_AVAILABLE.get("OPENAI_API_KEY"):
         return None
@@ -282,7 +294,7 @@ def setup_mistral() -> Optional[ChatMistralAI]:
     return ChatMistralAI(model="mistral-small-latest", temperature=0.5, timeout=30, max_retries=2)
 
 # ----------------------------------------------------------------------
-# Safe model query with error handling & retry
+# Safe model query with retries
 # ----------------------------------------------------------------------
 async def query_model_safe(
     name: str,
@@ -322,17 +334,11 @@ async def query_model_safe(
             "error_details": error_details
         }
 
-# ----------------------------------------------------------------------
-# Apply runtime parameters safely (temperature, retries) – only if supported
-# ----------------------------------------------------------------------
 def configure_model_parameters(model, temperature: float, max_retries: int):
-    # Temperature
     if hasattr(model, 'temperature'):
         model.temperature = temperature
-    # For ChatOpenAI / ChatGroq / ChatMistralAI, max_retries is a common parameter
     if hasattr(model, 'max_retries'):
         model.max_retries = max_retries
-    # Some models (like Gemini) accept `max_retries` via request options; we keep it simple.
 
 async def run_models_async(selected_models, messages, timeout, temperature, max_retries):
     for name, model in selected_models:
@@ -345,11 +351,8 @@ async def run_models_async(selected_models, messages, timeout, temperature, max_
     total_time = round(time.perf_counter() - start_time, 2)
     return results, total_time
 
-# ----------------------------------------------------------------------
-# Synchronous wrapper to safely run async code in Streamlit
-# ----------------------------------------------------------------------
 def run_async_safe(coro):
-    """Create a new event loop each time to avoid 'Event loop is closed' errors."""
+    """Run async coroutine safely in Streamlit (new event loop each time)."""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
@@ -425,7 +428,6 @@ def main():
                     HumanMessage(content=prompt)]
 
         with st.spinner("🔄 Running models with automatic retry logic..."):
-            # Safely run async code
             results, total_time = run_async_safe(run_models_async(selected_models, messages, timeout, temperature, max_retries))
 
         successful = [r for r in results if r["success"]]
@@ -500,7 +502,8 @@ def main():
     if not any(API_KEYS_AVAILABLE.values()):
         NotificationComponent.show_info("""
         **No API Keys Configured**  
-        Create a `.env` file in your repository with your API keys, for example:""")
+        - On **Streamlit Cloud**: add your keys in **Settings → Secrets**.
+        - For **local development**: create a `.env` file with:""")
 
 if __name__ == "__main__":
 main()
